@@ -1,0 +1,33 @@
+---
+name       : ML-prompt-registry CI Workflow
+
+on         :
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - ready_for_review
+      - opened
+      - synchronize
+      - reopened
+
+concurrency:
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: Deployment ${{ github.ref_name }}
+
+jobs       :
+
+  # ===============================================
+  # SYNC PROMPT BACKEND
+  # ===============================================
+
+  run-sync-prompt-backend:
+    name: Run Sync Prompt-backend
+    uses: ./.github/workflows/_sync-prompt-backend.yaml
+    needs: [run-get-core-dependencies-versions]
+    with:
+      pull-request: ${{ github.event_name == 'pull_request' }}
+      timeout: 20
