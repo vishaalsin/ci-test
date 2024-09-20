@@ -1,0 +1,55 @@
+name: Run Prompt Backend Sync
+on:
+  workflow_call:
+    inputs:
+      pull-request:
+        required: true
+        default: true
+        type: boolean
+        description: "Indicates whether this worfklow is running for a Pull Request."
+      timeout:
+        default: 30
+        type: number
+        description: "Prompt Backend timeout in minutes."
+
+jobs:
+  prompt-backend-sync:
+    runs-on: ubuntu-20.04
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        if: ${{ inputs.pull-request }}
+        id: get-changed-files
+        name: Get a list of modified files.
+        with:
+          list-files: shell
+          filters: |
+            all:
+              - added | modified: '**'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Get poetry version
+        id: get-poetry
+        run: |
+          echo "poetry-version=$(cat .poetry-version)" >> $GITHUB_OUTPUT
+
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ steps.get-poetry.outputs.poetry-version}}
+          virtualenvs-create: false
+
+      - name: Install requests package.
+        run: |
+          poetry install --no-root
+
+      - name: Sync prompt backend.
+        run: |
+          poetry run python sync-prompt-backend/sync-prompt-backend.py
